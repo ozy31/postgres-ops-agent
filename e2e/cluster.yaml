@@ -98,3 +98,19 @@ spec:
         key: ACCESS_SECRET_KEY
     wal:
       compression: zstd
+---
+# Test access only: the rw pooler on the kind node's port 30432, mapped to
+# 127.0.0.1:15432 on the host (e2e/kind.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-db-pooler-rw-nodeport
+  namespace: orders
+spec:
+  type: NodePort
+  selector:
+    cnpg.io/poolerName: orders-db-pooler-rw
+  ports:
+    - port: 5432
+      targetPort: 5432
+      nodePort: 30432

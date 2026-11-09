@@ -1,0 +1,12 @@
+# Single node. The pooler is published on localhost:15432 through a
+# NodePort instead of kubectl port-forward: PgBouncer resets connections on
+# close, and port-forward exits on the first reset.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: pg-ops
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30432
+        hostPort: 15432
+        listenAddress: 127.0.0.1

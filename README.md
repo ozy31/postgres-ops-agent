@@ -88,6 +88,24 @@ is in the repository. [`hack/agent-env.sh`](hack/agent-env.sh) writes a
 kubeconfig with a short-lived token for the agent's service account, so
 the server is tested as the agent, not as an admin.
 
+## Tested over MCP, as the agent
+
+[`e2e/test_tools.py`](e2e/test_tools.py) starts the real server over stdio,
+the way Claude Code or any MCP client does, with the agent's own kubeconfig
+and database role, and calls every tool against the kind cluster:
+
+- the cluster shows three ready instances, two `quorum` standbys streaming,
+  and `ContinuousArchiving` true;
+- a query run with a card-number-like literal shows up in `top_queries`
+  without the number;
+- every call lands in the audit log;
+- logged in as the agent's role directly, `select` from a table, `insert`
+  and `create table` are all refused by Postgres.
+
+The pooler is published on `127.0.0.1:15432` through a kind port mapping
+rather than `kubectl port-forward`: PgBouncer resets connections when a
+client disconnects, and port-forward exits on the first reset.
+
 ## Development
 
 ```bash
@@ -95,4 +113,5 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 make check     # ruff + unit tests
 make e2e-up    # kind + CNPG + test cluster
 make rbac      # the agent's service account can read and cannot write
+make e2e       # RBAC + every tool over MCP against the cluster
 ```

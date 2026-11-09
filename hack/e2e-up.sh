@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 # shellcheck source=e2e/versions.env
 source e2e/versions.env
 
-kind get clusters | grep -qx pg-ops || kind create cluster --name pg-ops --image "$KIND_NODE_IMAGE" --wait 2m
+kind get clusters | grep -qx pg-ops || kind create cluster --config e2e/kind.yaml --image "$KIND_NODE_IMAGE" --wait 2m
 
 helm repo add jetstack https://charts.jetstack.io --force-update >/dev/null
 helm repo add cnpg https://cloudnative-pg.github.io/charts --force-update >/dev/null
