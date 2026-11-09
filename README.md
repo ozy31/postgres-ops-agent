@@ -69,9 +69,30 @@ human:  pg-ops-agent proposals
 - **Audit log.** Every tool call is appended to `.state/audit.jsonl` with
   its arguments, outcome, duration and result size.
 
+## Least privilege, checked
+
+| Layer | The agent can | The agent cannot |
+|---|---|---|
+| Kubernetes ([`deploy/rbac.yaml`](deploy/rbac.yaml)) | get/list CNPG clusters, backups, poolers, pods, events in one namespace | read Secrets, exec into pods, read pod logs, change anything, see other namespaces |
+| Postgres ([`deploy/postgres-role.yaml`](deploy/postgres-role.yaml)) | read statistics views (`pg_monitor`) | read table data, write, create objects |
+| MCP server | call fixed tools bound to one cluster | send SQL, choose a namespace or cluster, run an action |
+
+[`e2e/rbac.sh`](e2e/rbac.sh) checks the Kubernetes column on a real cluster
+with `kubectl auth can-i --as` for every allowed and denied verb, including
+the subresources (`pods/exec`, `pods/log`, `clusters/status`).
+
+The e2e environment ([`hack/e2e-up.sh`](hack/e2e-up.sh)) is a kind cluster
+with CloudNativePG, the Barman Cloud plugin, local S3 and a three-instance
+cluster. Every credential in it is generated at setup time; nothing secret
+is in the repository. [`hack/agent-env.sh`](hack/agent-env.sh) writes a
+kubeconfig with a short-lived token for the agent's service account, so
+the server is tested as the agent, not as an admin.
+
 ## Development
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-make check     # ruff + pytest
+make check     # ruff + unit tests
+make e2e-up    # kind + CNPG + test cluster
+make rbac      # the agent's service account can read and cannot write
 ```

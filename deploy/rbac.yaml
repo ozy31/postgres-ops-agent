@@ -1,0 +1,36 @@
+# The identity the MCP server runs as. Read-only, one namespace, and only the
+# objects the tools need: no Secrets, no pods/exec, no pods/log, no write
+# verbs on anything. A compromised or confused agent can look, not touch.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pg-ops-agent
+  namespace: orders
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pg-ops-agent
+  namespace: orders
+rules:
+  - apiGroups: [postgresql.cnpg.io]
+    resources: [clusters, backups, scheduledbackups, poolers]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods, events]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pg-ops-agent
+  namespace: orders
+subjects:
+  - kind: ServiceAccount
+    name: pg-ops-agent
+    namespace: orders
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pg-ops-agent

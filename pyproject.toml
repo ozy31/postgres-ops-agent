@@ -32,5 +32,9 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP", "S", "SIM"]
 ignore = ["S101"]
 
+[tool.ruff.lint.per-file-ignores]
+# The e2e harness drives kubectl as the test admin.
+"e2e/*" = ["S603", "S607", "S404"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

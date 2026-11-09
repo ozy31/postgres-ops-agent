@@ -93,7 +93,7 @@ class DSN:
             host=os.environ.get("PG_OPS_HOST", "localhost"),
             port=int(os.environ.get("PG_OPS_PORT", "5432")),
             dbname=os.environ.get("PG_OPS_DATABASE", "postgres"),
-            user=os.environ.get("PG_OPS_USER", "pg_ops_agent"),
+            user=os.environ.get("PG_OPS_USER", "ops_agent"),
             password=password or "",
         )
 

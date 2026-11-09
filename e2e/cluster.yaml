@@ -1,0 +1,100 @@
+# Test target: a small three-instance cluster with a pooler, continuous WAL
+# archiving to the local S3, pg_stat_statements, and the agent's role.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: orders-db
+  namespace: orders
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-minimal-trixie
+  instances: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 256Mi
+  storage:
+    size: 1Gi
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: orders-db-backups
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
+    parameters:
+      shared_buffers: 64MB
+      max_connections: "100"
+      archive_timeout: 60s
+      pg_stat_statements.track: top
+  bootstrap:
+    initdb:
+      database: orders
+      owner: orders
+  managed:
+    roles:
+      - name: ops_agent
+        ensure: present
+        login: true
+        connectionLimit: 3
+        inRoles:
+          - pg_monitor
+        passwordSecret:
+          name: pg-ops-agent-db
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: orders-db-orders
+  namespace: orders
+spec:
+  cluster:
+    name: orders-db
+  name: orders
+  owner: orders
+  extensions:
+    - name: pg_stat_statements
+      ensure: present
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: orders-db-pooler-rw
+  namespace: orders
+spec:
+  cluster:
+    name: orders-db
+  instances: 1
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "500"
+      default_pool_size: "10"
+  template:
+    spec:
+      containers: []
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: orders-db-backups
+  namespace: orders
+spec:
+  retentionPolicy: 7d
+  configuration:
+    destinationPath: s3://postgres-backups/
+    endpointURL: http://seaweedfs.object-store.svc:8333
+    s3Credentials:
+      accessKeyId:
+        name: orders-db-backup-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: orders-db-backup-s3
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: zstd

@@ -1,0 +1,13 @@
+# Add to the Cluster's spec.managed.roles. pg_monitor can read every
+# statistics view (pg_stat_activity with query text, pg_stat_replication,
+# pg_stat_statements) and nothing else: no table data, no writes.
+# The password Secret (basic-auth, label cnpg.io/reload=true) is created
+# outside git, e.g. by External Secrets.
+- name: ops_agent
+  ensure: present
+  login: true
+  connectionLimit: 3
+  inRoles:
+    - pg_monitor
+  passwordSecret:
+    name: pg-ops-agent-db
