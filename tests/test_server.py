@@ -6,6 +6,7 @@ from fakes import FakeCore, FakeCustom, healthy_cluster, pod
 from pg_ops_agent.config import Settings
 from pg_ops_agent.kube import KubeReader
 from pg_ops_agent.server import build_server
+from pg_ops_agent.sql import DSN, SQLReader
 
 
 def server():
@@ -15,7 +16,8 @@ def server():
         "orders",
         "orders-db",
     )
-    return build_server(Settings("orders", "orders-db"), kube)
+    sql = SQLReader(DSN("h", 5432, "d", "u", "p"), connect=lambda dsn: None)
+    return build_server(Settings("orders", "orders-db"), kube, sql)
 
 
 def test_every_tool_is_read_only_and_takes_no_target():
