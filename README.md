@@ -43,6 +43,32 @@ The server is bound to one namespace and one cluster by its environment
 (`PG_OPS_NAMESPACE`, `PG_OPS_CLUSTER`); no tool takes a namespace or cluster
 argument, so the agent cannot point it somewhere else.
 
+## The agent proposes, a human decides
+
+There is one tool that is not read-only: `propose_action`. It writes a
+proposal file and returns its ID; nothing else happens.
+
+```text
+agent:  propose_action(action="switchover", target_instance="orders-db-2",
+                       reason="orders-db-1 restarted 4 times in 10m, OOMKilled")
+        -> {"accepted": true, "proposal_id": "9f3c21ab", "approve_with": "pg-ops-agent approve 9f3c21ab"}
+
+human:  pg-ops-agent proposals
+        9f3c21ab  pending    switchover -> orders-db-2  orders-db  2026-11-09T14:02:11+00:00
+                  reason: orders-db-1 restarted 4 times in 10m, OOMKilled
+        pg-ops-agent approve 9f3c21ab      # runs kubectl cnpg promote as *you*
+```
+
+- **Two identities.** The server runs as a service account with no write
+  verbs. `approve` runs with the human's own kubeconfig, so every change in
+  the Kubernetes audit log has a person's name on it.
+- **Allowlisted actions** (`switchover`, `backup`), each with preconditions:
+  a switchover needs a ready replica as target and no failover in progress.
+- **Checked twice.** Preconditions are checked when the agent proposes and
+  again when the human approves, because the cluster may have moved on.
+- **Audit log.** Every tool call is appended to `.state/audit.jsonl` with
+  its arguments, outcome, duration and result size.
+
 ## Development
 
 ```bash
