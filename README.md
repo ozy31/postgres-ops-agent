@@ -106,6 +106,27 @@ The pooler is published on `127.0.0.1:15432` through a kind port mapping
 rather than `kubectl port-forward`: PgBouncer resets connections when a
 client disconnects, and port-forward exits on the first reset.
 
+## Faults, and proof the evidence is there
+
+[`e2e/scenarios.py`](e2e/scenarios.py) breaks the real cluster in four ways
+and undoes it; [`e2e/test_faults.py`](e2e/test_faults.py) checks that each
+fault is visible through the tools:
+
+| Scenario | Injected | Visible in |
+|---|---|---|
+| long transaction | a session writes a row and sleeps inside its transaction | `long_transactions` (the row's value is redacted) |
+| lock contention | `ACCESS EXCLUSIVE` lock held, three readers waiting | `blocking_locks`: one blocker, three waiters |
+| replica down | one standby fenced (`cnpg.io/fencedInstances`) | `cluster_status` (2 of 3 ready), `replication` (one standby) |
+| WAL archiving failure | object store endpoint pointed at a host that does not exist | `wal_archiving` (`failed_count`, last failed segment) |
+
+These are the oracle for the LLM evals below: when they pass, a wrong
+diagnosis is the model's, not the tooling's.
+
+One thing the replica scenario surfaced: with a standby stopped, the
+operator's `phase` still reads **"Cluster in healthy state"**, and
+`readyInstances` only drops 30-40 s later. An agent (or a dashboard) that
+trusts `phase` misses it. The triage skill says so.
+
 ## Development
 
 ```bash
