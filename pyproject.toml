@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pg-ops-agent"
+version = "0.1.0"
+description = "A read-only MCP server that lets an AI agent diagnose CloudNativePG clusters, with human-approved actions"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+  "mcp==2.3.0",
+  "kubernetes==37.0.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.9"]
+
+[project.scripts]
+pg-ops-agent = "pg_ops_agent.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pg_ops_agent"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
