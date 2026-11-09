@@ -6,5 +6,5 @@ __pycache__/
 .env
 .state/
 audit.jsonl
-eval-results/*.raw.jsonl
+evals/results/*.raw.jsonl
 *.log

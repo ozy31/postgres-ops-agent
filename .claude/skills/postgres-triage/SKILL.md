@@ -57,6 +57,10 @@ Impact: <what users or recovery are affected by>
 Action for a human: <the concrete next step, linked to the runbook if known>
 ```
 
+Use `healthy` when nothing in the database explains the symptom, even if
+the page says the service is slow: "the database is fine, look elsewhere" is
+a diagnosis. Use `other` only for a database problem outside the list.
+
 ## Actions
 
 If a switchover or a backup would help, call `propose_action` with the

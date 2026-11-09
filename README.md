@@ -143,6 +143,50 @@ operator's `phase` still reads **"Cluster in healthy state"**, and
 `readyInstances` only drops 30-40 s later. An agent (or a dashboard) that
 trusts `phase` misses it. The triage skill says so.
 
+## Evals: does a model actually use this well?
+
+[`evals/run.py`](evals/run.py) injects each fault into the kind cluster,
+starts the server as the agent, and runs a small tool-calling loop
+([`evals/agent.py`](evals/agent.py)) with the triage skill as the system
+prompt and the page *"orders service is slow and some requests fail"*. The
+`Diagnosis:` line is graded against the injected fault; proposing an action
+on a healthy cluster also fails. Any OpenAI-compatible endpoint works; the
+run below used **qwen3:8b on a laptop through Ollama**, so no API key and no
+data leaves the machine.
+
+[Results](evals/results/2026-11-09-qwen3-8b.md), two runs per scenario,
+temperature 0:
+
+| Scenario | Result | Tools the model chose |
+|---|---|---|
+| healthy | 2/2 | cluster_status, connections, long_transactions, blocking_locks |
+| long transaction | 2/2 | cluster_status, connections, long_transactions |
+| lock contention | **0/2** | cluster_status, connections, long_transactions |
+| replica down | 2/2 | cluster_status, replication, warning_events |
+| WAL archiving failure | 2/2 | cluster_status |
+| **total** | **8/10** | 1 to 4 calls, 70-100 s per run |
+
+What the misses show: on lock contention the model never called
+`blocking_locks`. `long_transactions` already showed the sleeping session
+and the waiting `select count(*) from stock` queries, and the model
+described the contention correctly in its evidence, but filed it as
+`long_transaction`. The tools carried the evidence (the oracle test passes);
+the gap is in the categories, where a lock held by a long transaction fits
+both. Fixing it means teaching "a lock holder with waiters is
+lock_contention" in the skill, then re-running the eval, not editing the
+grader.
+
+Two other lessons from building it:
+
+- The first run graded a healthy cluster as `other`: the page said "slow",
+  and the skill never said that "the database is fine" is a valid answer.
+  One sentence in the skill fixed it.
+- On WAL archiving the model stopped after `cluster_status`, because the
+  `ContinuousArchiving` condition was already false. Fewer calls when the
+  first tool is conclusive is the behaviour the skill asks for.
+
+The evals are not in CI: they need a model. The e2e and fault tests are.
+
 ## Development
 
 ```bash
@@ -151,4 +195,6 @@ make check     # ruff + unit tests
 make e2e-up    # kind + CNPG + test cluster
 make rbac      # the agent's service account can read and cannot write
 make e2e       # RBAC + every tool over MCP against the cluster
+.venv/bin/pip install -e ".[eval]"
+.venv/bin/python evals/run.py --model qwen3:8b --runs 2   # Ollama on localhost
 ```
