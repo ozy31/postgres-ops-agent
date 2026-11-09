@@ -9,6 +9,22 @@ Every tool is read-only, and the server's Kubernetes identity has no write
 verbs at all. The agent finds the problem and says what to do; a human does
 it.
 
+## Using it from Claude Code
+
+1. Copy [`.mcp.json.example`](.mcp.json.example) to `.mcp.json` and set
+   `PG_OPS_KUBECONFIG` and `PG_OPS_PASSWORD_FILE` in your shell
+   (`eval "$(hack/agent-env.sh)"` does it for the e2e cluster). No
+   credential goes in the file.
+2. The [`postgres-triage`](.claude/skills/postgres-triage/SKILL.md) skill
+   loads when you ask about the database. It tells the agent to start from
+   `cluster_status`, follow the evidence instead of calling every tool, not
+   to trust the operator's `phase` alone, and to answer as
+   `Diagnosis / Evidence / Impact / Action for a human`.
+3. Ask: *"orders is slow, check the database"*.
+
+The same server works with any MCP client; the skill is plain Markdown that
+other agents can take as a system prompt (the evals do exactly that).
+
 ## Tools
 
 | Tool | What it returns |

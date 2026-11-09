@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "pg-ops": {
+      "command": ".venv/bin/pg-ops-agent",
+      "args": ["serve"],
+      "env": {
+        "KUBECONFIG": "${PG_OPS_KUBECONFIG}",
+        "PG_OPS_NAMESPACE": "orders",
+        "PG_OPS_CLUSTER": "orders-db",
+        "PG_OPS_HOST": "127.0.0.1",
+        "PG_OPS_PORT": "15432",
+        "PG_OPS_DATABASE": "orders",
+        "PG_OPS_USER": "ops_agent",
+        "PG_OPS_PASSWORD_FILE": "${PG_OPS_PASSWORD_FILE}"
+      }
+    }
+  }
+}
